@@ -11,16 +11,21 @@
 function Get-ModsList {
     param(
         [Parameter()]
-        [string]$dest,
-        [Parameter()]
         [string]$source
     )
-
-    Remove-Item -Path ".\modslist.list"
-    $wc = New-Object System.Net.WebClient
-    $wc.DownloadFile($source, $dest)
-    Start-Sleep -Seconds 2
-    return test-path -Path $dest
+    
+    try{
+        if((Test-Path -path ".\modslist.list") -eq $true){
+            Remove-Item -Path ".\modslist.list"
+            sleep 2
+        }
+        Invoke-WebRequest -URI $source -OutFile ".\modslist.list"
+        Start-Sleep -Seconds 3
+    }
+    catch{
+        Write-Error $_.exception
+    }
+    return test-path -Path ".\modslist.list"
 }
 
 function Get-AModFromURI {
@@ -31,19 +36,23 @@ function Get-AModFromURI {
         [string]$target
     )
 
-    $name = ($source -split "/")
-    $name = $name[$name.Length -1] -replace "/",""
-    Write-Verbose "Working on mod: $name"
-    
-    if((test-path -path "$target\$name") -eq $false){
-        $wc = New-Object System.Net.WebClient
-        $wc.DownloadFile($source, "$target\$name")
-        Start-Sleep -Seconds 2
+    try{
+        $name = ($source -split "/")
+        $name = $name[$name.Length -1] -replace "/",""
+        Write-Verbose "Working on mod: $name"
+
+        if((test-path -path ".\mods\$name") -eq $false){
+            Invoke-WebRequest -URI $source -OutFile ".\mods\$name"
+            Start-Sleep -Seconds 4
+        }
     }
-    return test-path -Path "$target\$name"
+    catch{
+        Write-Error $_.exception
+    }
+    return (test-path -Path ".\mods\$name")
 }
 
-function Get-MyMods {
+function Execute-ModDownloader {
     [CmdletBinding()]
     param()
 
@@ -63,14 +72,14 @@ function Get-MyMods {
         exit
     }
 
-    $modslist = ".\modslist.list"
     $config = Get-Content -Path ".\config.cfg"
 
     Write-Verbose "Downloading mod-list from $($config[1])"
 
-    if((Get-ModsList -dest $modslist -source $config[1]) -eq $true){
-        Get-Content -Path $modslist | ForEach-Object {
-            if((Get-AModFromURI -source $_ -target $config[0] -Verbose) -eq $false){
+    if((Get-ModsList -source $config) -eq $true){
+        Get-Content -Path ".\modslist.list" | ForEach-Object {
+            $_
+            if((Get-AModFromURI -source $_ -Verbose) -eq $false){
                 Write-Error "Failed downloading $_"
             }
             else{
@@ -83,4 +92,4 @@ function Get-MyMods {
     }
 }
 
-Get-MyMods -Verbose
+Execute-ModDownloader -Verbose
