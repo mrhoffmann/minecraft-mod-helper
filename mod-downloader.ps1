@@ -17,7 +17,6 @@ function Get-ModsList {
     try{
         if((Test-Path -path ".\modslist.list") -eq $true){
             Remove-Item -Path ".\modslist.list"
-            sleep 2
         }
         Invoke-WebRequest -URI $source -OutFile ".\modslist.list"
         Start-Sleep -Seconds 3
@@ -43,7 +42,7 @@ function Get-AModFromURI {
 
         if((test-path -path ".\mods\$name") -eq $false){
             Invoke-WebRequest -URI $source -OutFile ".\mods\$name"
-            Start-Sleep -Seconds 4
+            Start-Sleep -Seconds 2
         }
     }
     catch{
@@ -52,7 +51,7 @@ function Get-AModFromURI {
     return (test-path -Path ".\mods\$name")
 }
 
-function Execute-ModDownloader {
+function Invoke-ModDownloader {
     [CmdletBinding()]
     param()
 
@@ -79,7 +78,7 @@ function Execute-ModDownloader {
     if((Get-ModsList -source $config) -eq $true){
         Get-Content -Path ".\modslist.list" | ForEach-Object {
             $_
-            if((Get-AModFromURI -source $_ -Verbose) -eq $false){
+            if((Get-AModFromURI -source $_) -eq $false){
                 Write-Error "Failed downloading $_"
             }
             else{
@@ -92,4 +91,4 @@ function Execute-ModDownloader {
     }
 }
 
-Execute-ModDownloader -Verbose
+Invoke-ModDownloader
